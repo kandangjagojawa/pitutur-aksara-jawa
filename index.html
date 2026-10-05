@@ -257,17 +257,36 @@
             });
         }
 
+        // Fungsi pembantu untuk memastikan input diawali adeg-adeg dan diakhiri titik
+        function prepareTextWithAdegAdeg(rawText) {
+            let text = rawText.trim();
+            if (!text) return '';
+            
+            // Tambahkan adeg-adeg (꧋) jika belum diawali adeg-adeg
+            if (!text.startsWith('꧋')) {
+                text = '꧋' + text;
+            }
+            
+            // Tambahkan titik (.) di akhir jika belum diakhiri tanda titik / pada lungsi / pada pangkat
+            if (!text.endsWith('.') && !text.endsWith('꧉') && !text.endsWith('?')) {
+                text = text + '.';
+            }
+            return text;
+        }
+
         async function processTransliteration(text) {
-            if (!text) {
+            if (!text || !text.trim()) {
                 document.getElementById('outKbj').innerText = '';
                 document.getElementById('outSriwedari').innerText = '';
                 document.getElementById('outKawi').innerText = '';
                 return;
             }
+
+            let preparedText = prepareTextWithAdegAdeg(text);
             
-            let resKbj = await askIframe(winKbj, 'transliterasiKalimat', text);
-            let resSriwedari = await askIframe(winSriwedari, 'transliterasiKalimat', text);
-            let resKawi = await askIframe(winKawi, 'transliterateKawi', text);
+            let resKbj = await askIframe(winKbj, 'transliterasiKalimat', preparedText);
+            let resSriwedari = await askIframe(winSriwedari, 'transliterasiKalimat', preparedText);
+            let resKawi = await askIframe(winKawi, 'transliterateKawi', preparedText);
             
             document.getElementById('outKbj').innerText = resKbj || '';
             document.getElementById('outSriwedari').innerText = resSriwedari || '';
