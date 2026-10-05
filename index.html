@@ -288,6 +288,15 @@
             let resSriwedari = await askIframe(winSriwedari, 'transliterasiKalimat', preparedText);
             let resKawi = await askIframe(winKawi, 'transliterateKawi', preparedText);
             
+            // PENGECUALIAN KHUSUS PAUGERAN SRIWEDARI (Post-Processing)
+            if (resSriwedari) {
+                // 1. Mengubah "memayu" (ꦩꦼꦩꦪꦸ) menjadi "mamayu" (ꦩꦩꦪꦸ)
+                resSriwedari = resSriwedari.replace(/ꦩꦼꦩꦪꦸ/g, 'ꦩꦩꦪꦸ');
+
+                // 2. Mengubah "ketara" (ꦏꦼꦠꦫ) menjadi "katara" (ꦏꦠꦫ)
+                resSriwedari = resSriwedari.replace(/ꦏꦼꦠꦫ/g, 'ꦏꦠꦫ');
+            }
+
             document.getElementById('outKbj').innerText = resKbj || '';
             document.getElementById('outSriwedari').innerText = resSriwedari || '';
             document.getElementById('outKawi').innerText = resKawi || '';
