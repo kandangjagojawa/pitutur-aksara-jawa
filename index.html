@@ -46,7 +46,20 @@
         <!-- Pencarian & Dropdown -->
         <div class="relative w-full max-w-2xl mb-8">
             <label for="searchInput" class="block text-sm font-semibold mb-2 text-amber-900">Pilih atau Ketik Pitutur</label>
-            <input type="text" id="searchInput" class="w-full p-4 border-2 border-amber-300 rounded-lg shadow-sm text-lg focus:outline-none focus:border-amber-600 focus:ring-1 focus:ring-amber-600 bg-white placeholder-gray-400" placeholder="Ketik awalan kata pitutur (misal: urip, becik)...">
+            <div class="relative flex items-center">
+                <input type="text" id="searchInput" 
+                       autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false"
+                       class="w-full p-4 pr-12 border-2 border-amber-300 rounded-lg shadow-sm text-lg focus:outline-none focus:border-amber-600 focus:ring-1 focus:ring-amber-600 bg-white placeholder-gray-400" 
+                       placeholder="Ketik awalan kata pitutur (misal: urip, becik)...">
+                
+                <!-- Tombol Hapus / Clear Button -->
+                <button type="button" id="clearBtn" class="absolute right-3 hidden text-gray-400 hover:text-amber-800 focus:outline-none p-2 rounded-full transition" title="Bersihkan input">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
             <!-- Dropdown List -->
             <div id="dropdownList" class="absolute z-10 w-full bg-white border border-amber-200 rounded-lg shadow-xl mt-1 hidden max-h-60 overflow-y-auto custom-scrollbar"></div>
         </div>
@@ -124,12 +137,23 @@
             .then(data => pituturData = data)
             .catch(err => console.error("Gagal memuat pitutur.json", err));
 
-        // 1. Logika Dropdown Pencarian
+        // 1. Logika Input & Dropdown Pencarian
         const searchInput = document.getElementById('searchInput');
+        const clearBtn = document.getElementById('clearBtn');
         const dropdownList = document.getElementById('dropdownList');
+
+        // Mengatur visibilitas tombol hapus
+        function toggleClearBtn() {
+            if (searchInput.value.length > 0) {
+                clearBtn.classList.remove('hidden');
+            } else {
+                clearBtn.classList.add('hidden');
+            }
+        }
 
         searchInput.addEventListener('input', (e) => {
             let val = e.target.value.toLowerCase();
+            toggleClearBtn();
             dropdownList.innerHTML = '';
             
             if (!val.trim()) {
@@ -149,12 +173,11 @@
                 matches.forEach(m => {
                     let div = document.createElement('div');
                     div.className = 'p-4 hover:bg-amber-50 cursor-pointer border-b border-gray-100 last:border-0 text-gray-700 font-medium transition';
-                    
-                    // Highlight kata yang cocok (opsional untuk UI yang lebih baik)
                     div.textContent = m;
                     
                     div.onclick = () => {
                         searchInput.value = m;
+                        toggleClearBtn();
                         dropdownList.classList.add('hidden');
                         processTransliteration(m);
                     };
@@ -164,13 +187,21 @@
                 dropdownList.classList.add('hidden');
             }
             
-            // Transliterasi real-time saat user mengetik manual (jika bukan memilih dari list)
             processTransliteration(e.target.value);
+        });
+
+        // Event listener untuk tombol hapus
+        clearBtn.addEventListener('click', () => {
+            searchInput.value = '';
+            toggleClearBtn();
+            dropdownList.classList.add('hidden');
+            processTransliteration('');
+            searchInput.focus();
         });
 
         // Menyembunyikan dropdown jika user mengklik area lain
         document.addEventListener('click', (e) => {
-            if (!searchInput.contains(e.target) && !dropdownList.contains(e.target)) {
+            if (!searchInput.contains(e.target) && !dropdownList.contains(e.target) && !clearBtn.contains(e.target)) {
                 dropdownList.classList.add('hidden');
             }
         });
@@ -210,7 +241,6 @@
         }
 
         // 4. Sandboxing Skrip Transliterasi via Iframe
-        // Metode ini digunakan untuk mencegah konflik penamaan global variabel (misal const KAMUS_AKSARA)
         window.addEventListener('message', (e) => {
             if (e.data && e.data.id && pendingRequests[e.data.id]) {
                 pendingRequests[e.data.id](e.data.result);
@@ -235,7 +265,6 @@
                 return;
             }
             
-            // Mengeksekusi secara asinkron dari ketiga iframe yang terisolasi
             let resKbj = await askIframe(winKbj, 'transliterasiKalimat', text);
             let resSriwedari = await askIframe(winSriwedari, 'transliterasiKalimat', text);
             let resKawi = await askIframe(winKawi, 'transliterateKawi', text);
@@ -245,7 +274,6 @@
             document.getElementById('outKawi').innerText = resKawi || '';
         }
 
-        // Fungsi pembuat Iframe pembantu
         function createIframe(scriptSrc) {
             return new Promise(resolve => {
                 let iframe = document.createElement('iframe');
@@ -253,18 +281,14 @@
                 document.body.appendChild(iframe);
                 
                 let doc = iframe.contentWindow.document;
-                
-                // Set tag base agar path relative scriptSrc tetap merujuk ke direktori saat ini
                 let baseTag = doc.createElement('base');
                 baseTag.href = window.location.href;
                 doc.head.appendChild(baseTag);
                 
-                // Elemen DOM tiruan disuntikkan agar carakawi.js yang berisi listener global tidak error saat diinisialisasi
                 const dummyIds = ['textInput', 'previewOutput', 'fontSelect', 'fontSizeRange', 'fontSizeVal', 'lineHeightRange', 'lineHeightVal', 'charCount', 'copyBtn', 'clearBtn'];
                 let dummies = dummyIds.map(id => `<input id="${id}">`).join('');
                 doc.body.innerHTML = dummies;
                 
-                // Skrip perantara pesan
                 let scriptListener = doc.createElement('script');
                 scriptListener.textContent = `
                     window.addEventListener('message', function(e) {
@@ -280,17 +304,15 @@
                 `;
                 doc.head.appendChild(scriptListener);
 
-                // Memuat script utama
                 let scriptTarget = doc.createElement('script');
                 scriptTarget.src = scriptSrc;
                 scriptTarget.onload = () => resolve(iframe.contentWindow);
-                scriptTarget.onerror = () => resolve(iframe.contentWindow); // resolve agar tidak freeze
+                scriptTarget.onerror = () => resolve(iframe.contentWindow);
                 doc.head.appendChild(scriptTarget);
             });
         }
         
         async function init() {
-            // Memuat ketiga script dalam mode sandboxing yang aman
             winKbj = await createIframe('kbj.js');
             winSriwedari = await createIframe('sriwedari.js');
             winKawi = await createIframe('carakawi.js');
