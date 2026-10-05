@@ -290,16 +290,8 @@
             
             // PENGECUALIAN KHUSUS PAUGERAN SRIWEDARI (Post-Processing)
             if (resSriwedari) {
-                // 1. Mengubah "memayu" (ꦩꦼꦩꦪꦸ) menjadi "mamayu" (ꦩꦩꦪꦸ)
+                // Mengubah "memayu" (ꦩꦼꦩꦪꦸ) menjadi "mamayu" (ꦩꦩꦪꦸ) khusus untuk Sriwedari
                 resSriwedari = resSriwedari.replace(/ꦩꦼꦩꦪꦸ/g, 'ꦩꦩꦪꦸ');
-
-                // 2. Mengubah "ketara" (ꦏꦼꦠꦫ) menjadi "katara" (ꦏꦠꦫ)
-                resSriwedari = resSriwedari.replace(/ꦏꦼꦠꦫ/g, 'ꦏꦠꦫ');
-                resSriwedari = resSriwedari.replace(/ꦠꦺꦴꦤ꧀ꦥ/g, 'ꦠꦤ꧀ꦥ');
-                resSriwedari = resSriwedari.replace(/ꦏꦼꦠꦩꦤ꧀/g, 'ꦏꦠꦩꦤ꧀');
-                resSriwedari = resSriwedari.replace(/ꦏꦼꦱꦼꦭꦫꦱ꧀ꦱꦤ꧀/g, 'ꦏꦱꦭꦫꦱ꧀ꦱꦤ꧀');
-                resSriwedari = resSriwedari.replace(/ꦤꦼꦒꦫꦶ/g, 'ꦤꦒꦫꦶ');
-                resSriwedari = resSriwedari.replace(/ꦱꦼꦒꦫ/g, 'ꦱꦒꦫ');
             }
 
             document.getElementById('outKbj').innerText = resKbj || '';
