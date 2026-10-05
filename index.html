@@ -292,6 +292,12 @@
             if (resSriwedari) {
                 // Mengubah "memayu" (ꦩꦼꦩꦪꦸ) menjadi "mamayu" (ꦩꦩꦪꦸ) khusus untuk Sriwedari
                 resSriwedari = resSriwedari.replace(/ꦩꦼꦩꦪꦸ/g, 'ꦩꦩꦪꦸ');
+                resSriwedari = resSriwedari.replace(/ꦠꦺꦴꦤ꧀ꦥ/g, 'ꦠꦤ꧀ꦥ');
+                resSriwedari = resSriwedari.replace(/ꦏꦼꦠꦩꦤ꧀/g, 'ꦏꦠꦩꦤ꧀');
+                resSriwedari = resSriwedari.replace(/ꦏꦼꦱꦼꦭꦫꦱ꧀ꦱꦤ꧀/g, 'ꦏꦱꦭꦫꦱ꧀ꦱꦤ꧀');
+                resSriwedari = resSriwedari.replace(/ꦤꦼꦒꦫꦶ/g, 'ꦤꦒꦫꦶ');
+                resSriwedari = resSriwedari.replace(/ꦱꦼꦒꦫ/g, 'ꦱꦒꦫ');
+                resSriwedari = resSriwedari.replace(/ꦏꦼꦠꦫ/g, 'ꦏꦠꦫ');
             }
 
             document.getElementById('outKbj').innerText = resKbj || '';
