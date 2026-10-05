@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aplikasi Pitutur Aksara Jawa</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Import Google Font: Libre Caslon Text -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
     <style>
         @font-face {
             font-family: 'NgayogyanKawi';
@@ -21,6 +25,8 @@
         }
         .font-kawi { font-family: 'NgayogyanKawi', sans-serif; }
         .font-biasa { font-family: 'NgayogyanBiasa', sans-serif; }
+        .font-caslon { font-family: 'Libre Caslon Text', serif; }
+        
         .aksara-box {
             font-size: 2.5rem;
             line-height: 1.8;
@@ -118,12 +124,12 @@
 
         </div>
 
-        <!-- Area Daftar Semua Pitutur -->
-        <div class="w-full mt-12 bg-white p-6 rounded-lg shadow-md border border-amber-200">
-            <h2 class="text-xl font-bold text-amber-900 mb-4 border-b border-amber-200 pb-2">Daftar Lengkap Pitutur Luhur</h2>
-            <ul id="pituturListContainer" class="grid grid-cols-1 md:grid-cols-2 gap-3 text-gray-700 text-lg">
-                <!-- Daftar pitutur akan dirender di sini via JavaScript -->
-            </ul>
+        <!-- Area Daftar Semua Pitutur (Single Column dengan Pengelompokan Abjad) -->
+        <div class="w-full max-w-4xl mt-12 bg-white p-6 rounded-lg shadow-md border border-amber-200 font-caslon">
+            <h2 class="text-xl font-bold text-amber-900 mb-6 border-b border-amber-200 pb-2">Daftar Lengkap Pitutur Luhur</h2>
+            <div id="pituturListContainer" class="flex flex-col gap-6 text-base">
+                <!-- Daftar pitutur dengan header abjad akan dirender di sini via JavaScript -->
+            </div>
         </div>
     </main>
 
@@ -139,47 +145,82 @@
         let pendingRequests = {};
         let reqId = 0;
 
-        // Fungsi format UI untuk daftar pitutur (Kapital awal, tambah titik)
+        // Format Tampilan UI: Kapital awal, hilangkan tanda hubung (-), akhiri titik
         function formatDisplayPitutur(text) {
             if (!text) return '';
-            let trimmed = text.trim();
-            // Kapital huruf pertama
-            let formatted = trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
-            // Tambahkan titik jika belum ada
+            let cleaned = text.replace(/-/g, ' ').trim(); // Hilangkan tanda hubung (-)
+            let formatted = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
             if (!formatted.endsWith('.') && !formatted.endsWith('?')) {
                 formatted += '.';
             }
             return formatted;
         }
 
-        // Fungsi merender daftar lengkap pitutur di bagian bawah
+        // Fungsi merender daftar lengkap pitutur dengan Header Abjad, Nomor, Zebra Striping 1 Kolom
         function renderPituturList() {
             const container = document.getElementById('pituturListContainer');
-            container.innerHTML = ''; // bersihkan kontainer
+            container.innerHTML = ''; 
 
             // Urutkan data berdasarkan abjad tanpa mengubah array asli
             let sortedData = [...pituturData].sort((a, b) => a.localeCompare(b, 'id'));
 
+            // Kelompokkan data berdasarkan huruf pertama
+            let groupedData = {};
             sortedData.forEach(originalText => {
-                let displayText = formatDisplayPitutur(originalText);
-                
-                let li = document.createElement('li');
-                li.className = 'cursor-pointer hover:text-amber-800 hover:bg-amber-50 p-2 rounded transition border-l-4 border-transparent hover:border-amber-500';
-                li.textContent = displayText;
-                
-                li.onclick = () => {
-                    // Gunakan data asli (huruf sesuai json) untuk search input dan transliterasi
-                    searchInput.value = originalText;
-                    toggleClearBtn();
+                let firstLetter = originalText.trim().charAt(0).toUpperCase();
+                if (!groupedData[firstLetter]) {
+                    groupedData[firstLetter] = [];
+                }
+                groupedData[firstLetter].push(originalText);
+            });
+
+            let globalCounter = 1; // Penomoran urut pitutur
+
+            // Render per grup abjad
+            Object.keys(groupedData).sort().forEach(letter => {
+                // Pembungkus Seksi Abjad
+                let section = document.createElement('div');
+                section.className = 'flex flex-col';
+
+                // Header Abjad Tunggal
+                let letterHeader = document.createElement('div');
+                letterHeader.className = 'text-2xl font-bold text-amber-800 bg-amber-100/70 px-4 py-2 rounded-md mb-2 border-l-4 border-amber-700 shadow-sm';
+                letterHeader.textContent = letter;
+                section.appendChild(letterHeader);
+
+                // Kontainer List 1 Kolom
+                let ul = document.createElement('ul');
+                ul.className = 'flex flex-col rounded-lg overflow-hidden border border-amber-100 shadow-sm';
+
+                groupedData[letter].forEach((originalText, index) => {
+                    let displayText = formatDisplayPitutur(originalText);
+                    let li = document.createElement('li');
                     
-                    // Lakukan proses transliterasi dengan data asli
-                    processTransliteration(originalText);
+                    // Latar belakang selang-seling (Zebra striping disesuaikan dengan tema UI amber)
+                    let bgClass = (index % 2 === 0) ? 'bg-[#fdfbf7]' : 'bg-[#f7f2e7]';
                     
-                    // Gulung layar ke atas supaya user bisa melihat hasilnya langsung
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                };
-                
-                container.appendChild(li);
+                    li.className = `${bgClass} cursor-pointer hover:bg-amber-200/60 p-3 transition border-b border-amber-100/60 last:border-0 flex items-start gap-3 text-[0.95rem] leading-relaxed text-gray-800`;
+                    
+                    // Nomor urut & Teks Kalimat
+                    li.innerHTML = `
+                        <span class="font-bold text-amber-900 min-w-[2.2rem] text-right select-none">${globalCounter}.</span>
+                        <span class="flex-grow">${displayText}</span>
+                    `;
+                    
+                    li.onclick = () => {
+                        // Tetap memproses data asli (huruf kecil & tanda hubung)
+                        searchInput.value = originalText;
+                        toggleClearBtn();
+                        processTransliteration(originalText);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    };
+                    
+                    ul.appendChild(li);
+                    globalCounter++;
+                });
+
+                section.appendChild(ul);
+                container.appendChild(section);
             });
         }
 
@@ -188,7 +229,7 @@
             .then(res => res.json())
             .then(data => {
                 pituturData = data;
-                renderPituturList(); // Render daftar pitutur setelah data sukses dimuat
+                renderPituturList();
             })
             .catch(err => console.error("Gagal memuat pitutur.json", err));
 
@@ -197,7 +238,6 @@
         const clearBtn = document.getElementById('clearBtn');
         const dropdownList = document.getElementById('dropdownList');
 
-        // Mengatur visibilitas tombol hapus
         function toggleClearBtn() {
             if (searchInput.value.length > 0) {
                 clearBtn.classList.remove('hidden');
@@ -217,7 +257,6 @@
                 return;
             }
 
-            // Memecah kata-kata dalam pitutur dan mencari yang diawali input
             let matches = pituturData.filter(p => {
                 let words = p.toLowerCase().split(/[\s,.-]+/);
                 return words.some(w => w.startsWith(val));
@@ -245,7 +284,6 @@
             processTransliteration(e.target.value);
         });
 
-        // Event listener untuk tombol hapus
         clearBtn.addEventListener('click', () => {
             searchInput.value = '';
             toggleClearBtn();
@@ -254,7 +292,6 @@
             searchInput.focus();
         });
 
-        // Menyembunyikan dropdown jika user mengklik area lain
         document.addEventListener('click', (e) => {
             if (!searchInput.contains(e.target) && !dropdownList.contains(e.target) && !clearBtn.contains(e.target)) {
                 dropdownList.classList.add('hidden');
@@ -312,17 +349,12 @@
             });
         }
 
-        // Fungsi pembantu untuk memastikan input diawali adeg-adeg dan diakhiri titik
         function prepareTextWithAdegAdeg(rawText) {
             let text = rawText.trim();
             if (!text) return '';
-            
-            // Tambahkan adeg-adeg (꧋) jika belum diawali adeg-adeg
             if (!text.startsWith('꧋')) {
                 text = '꧋' + text;
             }
-            
-            // Tambahkan titik (.) di akhir jika belum diakhiri tanda titik / pada lungsi / pada pangkat
             if (!text.endsWith('.') && !text.endsWith('꧉') && !text.endsWith('?')) {
                 text = text + '.';
             }
@@ -343,18 +375,9 @@
             let resSriwedari = await askIframe(winSriwedari, 'transliterasiKalimat', preparedText);
             let resKawi = await askIframe(winKawi, 'transliterateKawi', preparedText);
             
-            // PENGECUALIAN KHUSUS PAUGERAN SRIWEDARI (Post-Processing)
             if (resSriwedari) {
-                // Mengubah "memayu" (ꦩꦼꦩꦪꦸ) menjadi "mamayu" (ꦩꦩꦪꦸ) khusus untuk Sriwedari
                 resSriwedari = resSriwedari.replace(/ꦩꦼꦩꦪꦸ/g, 'ꦩꦩꦪꦸ');
-                
-                // Mengubah "ketara" (ꦏꦼꦠꦫ) menjadi "katara" (ꦏꦠꦫ) khusus untuk Sriwedari
                 resSriwedari = resSriwedari.replace(/ꦏꦼꦠꦫ/g, 'ꦏꦠꦫ');
-                resSriwedari = resSriwedari.replace(/ꦠꦺꦴꦤ꧀ꦥ/g, 'ꦠꦤ꧀ꦥ');
-                resSriwedari = resSriwedari.replace(/ꦏꦼꦠꦩꦤ꧀/g, 'ꦏꦠꦩꦤ꧀');
-                resSriwedari = resSriwedari.replace(/ꦏꦼꦱꦼꦭꦫꦱ꧀ꦱꦤ꧀/g, 'ꦏꦱꦭꦫꦱ꧀ꦱꦤ꧀');
-                resSriwedari = resSriwedari.replace(/ꦤꦼꦒꦫꦶ/g, 'ꦤꦒꦫꦶ');
-                resSriwedari = resSriwedari.replace(/ꦱꦼꦒꦫ/g, 'ꦱꦒꦫ');
             }
 
             document.getElementById('outKbj').innerText = resKbj || '';
