@@ -56,7 +56,7 @@
                 <input type="text" id="searchInput" 
                        autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false"
                        class="w-full p-4 pr-12 border-2 border-amber-300 rounded-lg shadow-sm text-lg focus:outline-none focus:border-amber-600 focus:ring-1 focus:ring-amber-600 bg-white placeholder-gray-400" 
-                       placeholder="Ketik awalan kata pitutur (misal: urip, becik)...">
+                       placeholder="Tulis kata kunci, atau pilih dari daftar pitutur di bawah.">
                 
                 <!-- Tombol Hapus / Clear Button -->
                 <button type="button" id="clearBtn" class="absolute right-3 hidden text-gray-400 hover:text-amber-800 focus:outline-none p-2 rounded-full transition" title="Bersihkan input">
@@ -370,8 +370,24 @@
             return text;
         }
 
+        // Fungsi mengecek apakah kata/input user ada di dalam database pitutur.json
+        function isValidPituturInput(rawText) {
+            if (!rawText || !rawText.trim()) return false;
+            let val = rawText.trim().toLowerCase();
+            
+            return pituturData.some(pitutur => {
+                let lowerP = pitutur.toLowerCase();
+                if (lowerP === val || lowerP.startsWith(val)) return true;
+                
+                let cleanedP = lowerP.replace(/-/g, '');
+                let words = lowerP.split(/[\s,.-]+/).concat(cleanedP.split(/[\s,.-]+/));
+                return words.some(w => w.startsWith(val) || val.startsWith(w));
+            });
+        }
+
         async function processTransliteration(text) {
-            if (!text || !text.trim()) {
+            // Jika input tidak valid (tidak ada di database pitutur.json), kosongkan kotak hasil transliterasi
+            if (!text || !text.trim() || !isValidPituturInput(text)) {
                 document.getElementById('outKbj').innerText = '';
                 document.getElementById('outSriwedari').innerText = '';
                 document.getElementById('outKawi').innerText = '';
@@ -384,12 +400,13 @@
             let resSriwedari = await askIframe(winSriwedari, 'transliterasiKalimat', preparedText);
             let resKawi = await askIframe(winKawi, 'transliterateKawi', preparedText);
             
+            // PENGECUALIAN KHUSUS PAUGERAN SRIWEDARI (Post-Processing)
             if (resSriwedari) {
                 resSriwedari = resSriwedari.replace(/ꦩꦼꦩꦪꦸ/g, 'ꦩꦩꦪꦸ');
                 resSriwedari = resSriwedari.replace(/ꦏꦼꦠꦫ/g, 'ꦏꦠꦫ');
                 resSriwedari = resSriwedari.replace(/ꦠꦺꦴꦤ꧀ꦥ/g, 'ꦠꦤ꧀ꦥ');
-                resSriwedari = resSriwedari.replace(/ꦏꦼꦠꦩꦤ꧀/g, 'ꦏꦠꦩꦤ꧀');
-                resSriwedari = resSriwedari.replace(/ꦏꦼꦱꦼꦭꦫꦱ꧀ꦱꦤ꧀/g, 'ꦏꦱꦭꦫꦱ꧀ꦱꦤ꧀');
+                resSriwedari = resSriwedari.replace(/ꦏꦼꦠꦩꦤ꧀/g, 'ꦏꠠꦠꦩꦤ꧀');
+                resSriwedari = resSriwedari.replace(/ꦏꦼꦱꦼꦩꦫꦱ꧀ꦱꦤ꧀/g, 'ꦏꦱꦭꦫꦱ꧀ꦱꦤ꧀');
                 resSriwedari = resSriwedari.replace(/ꦤꦼꦒꦫꦶ/g, 'ꦤꦒꦫꦶ');
                 resSriwedari = resSriwedari.replace(/ꦱꦼꦒꦫ/g, 'ꦱꦒꦫ');
                 resSriwedari = resSriwedari.replace(/ꦊꦭꦧꦸꦃꦲꦤ꧀/g, 'ꦭꦭꦧꦸꦃꦲꦤ꧀');
