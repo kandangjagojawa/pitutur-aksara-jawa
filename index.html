@@ -117,6 +117,14 @@
             </div>
 
         </div>
+
+        <!-- Area Daftar Semua Pitutur -->
+        <div class="w-full mt-12 bg-white p-6 rounded-lg shadow-md border border-amber-200">
+            <h2 class="text-xl font-bold text-amber-900 mb-4 border-b border-amber-200 pb-2">Daftar Lengkap Pitutur Luhur</h2>
+            <ul id="pituturListContainer" class="grid grid-cols-1 md:grid-cols-2 gap-3 text-gray-700 text-lg">
+                <!-- Daftar pitutur akan dirender di sini via JavaScript -->
+            </ul>
+        </div>
     </main>
 
     <!-- Footer -->
@@ -131,10 +139,57 @@
         let pendingRequests = {};
         let reqId = 0;
 
+        // Fungsi format UI untuk daftar pitutur (Kapital awal, tambah titik)
+        function formatDisplayPitutur(text) {
+            if (!text) return '';
+            let trimmed = text.trim();
+            // Kapital huruf pertama
+            let formatted = trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+            // Tambahkan titik jika belum ada
+            if (!formatted.endsWith('.') && !formatted.endsWith('?')) {
+                formatted += '.';
+            }
+            return formatted;
+        }
+
+        // Fungsi merender daftar lengkap pitutur di bagian bawah
+        function renderPituturList() {
+            const container = document.getElementById('pituturListContainer');
+            container.innerHTML = ''; // bersihkan kontainer
+
+            // Urutkan data berdasarkan abjad tanpa mengubah array asli
+            let sortedData = [...pituturData].sort((a, b) => a.localeCompare(b, 'id'));
+
+            sortedData.forEach(originalText => {
+                let displayText = formatDisplayPitutur(originalText);
+                
+                let li = document.createElement('li');
+                li.className = 'cursor-pointer hover:text-amber-800 hover:bg-amber-50 p-2 rounded transition border-l-4 border-transparent hover:border-amber-500';
+                li.textContent = displayText;
+                
+                li.onclick = () => {
+                    // Gunakan data asli (huruf sesuai json) untuk search input dan transliterasi
+                    searchInput.value = originalText;
+                    toggleClearBtn();
+                    
+                    // Lakukan proses transliterasi dengan data asli
+                    processTransliteration(originalText);
+                    
+                    // Gulung layar ke atas supaya user bisa melihat hasilnya langsung
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                };
+                
+                container.appendChild(li);
+            });
+        }
+
         // Memuat database pitutur
         fetch('pitutur.json')
             .then(res => res.json())
-            .then(data => pituturData = data)
+            .then(data => {
+                pituturData = data;
+                renderPituturList(); // Render daftar pitutur setelah data sukses dimuat
+            })
             .catch(err => console.error("Gagal memuat pitutur.json", err));
 
         // 1. Logika Input & Dropdown Pencarian
@@ -292,13 +347,9 @@
             if (resSriwedari) {
                 // Mengubah "memayu" (ꦩꦼꦩꦪꦸ) menjadi "mamayu" (ꦩꦩꦪꦸ) khusus untuk Sriwedari
                 resSriwedari = resSriwedari.replace(/ꦩꦼꦩꦪꦸ/g, 'ꦩꦩꦪꦸ');
-                resSriwedari = resSriwedari.replace(/ꦠꦺꦴꦤ꧀ꦥ/g, 'ꦠꦤ꧀ꦥ');
-                resSriwedari = resSriwedari.replace(/ꦏꦼꦠꦩꦤ꧀/g, 'ꦏꦠꦩꦤ꧀');
-                resSriwedari = resSriwedari.replace(/ꦏꦼꦱꦼꦭꦫꦱ꧀ꦱꦤ꧀/g, 'ꦏꦱꦭꦫꦱ꧀ꦱꦤ꧀');
-                resSriwedari = resSriwedari.replace(/ꦤꦼꦒꦫꦶ/g, 'ꦤꦒꦫꦶ');
-                resSriwedari = resSriwedari.replace(/ꦱꦼꦒꦫ/g, 'ꦱꦒꦫ');
+                
+                // Mengubah "ketara" (ꦏꦼꦠꦫ) menjadi "katara" (ꦏꦠꦫ) khusus untuk Sriwedari
                 resSriwedari = resSriwedari.replace(/ꦏꦼꦠꦫ/g, 'ꦏꦠꦫ');
-                resSriwedari = resSriwedari.replace(/ꦱꦼꦠꦶꦠꦶ/g, 'ꦱꦠꦶꦠꦶ');
             }
 
             document.getElementById('outKbj').innerText = resKbj || '';
