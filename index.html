@@ -145,11 +145,20 @@
         let pendingRequests = {};
         let reqId = 0;
 
-        // Format Tampilan UI: Kapital awal, hilangkan tanda hubung (-), akhiri titik
+        // Format Tampilan UI: Disambung jika ada tanda hubung, Kapital awal & kata khusus, akhiri titik
         function formatDisplayPitutur(text) {
             if (!text) return '';
-            let cleaned = text.replace(/-/g, ' ').trim(); // Hilangkan tanda hubung (-)
+            
+            // 1. Hapus tanda hubung (-) tanpa spasi agar kata menyambung (misal: ninggal-a -> ninggala)
+            let cleaned = text.replace(/-/g, '').trim(); 
+            
+            // 2. Format Kapital awal kalimat
             let formatted = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+            
+            // 3. Format khusus kata 'Gusti'
+            formatted = formatted.replace(/\bgusti\b/gi, 'Gusti');
+            
+            // 4. Akhiri dengan tanda titik jika belum ada tanda baca akhir
             if (!formatted.endsWith('.') && !formatted.endsWith('?')) {
                 formatted += '.';
             }
