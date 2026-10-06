@@ -149,16 +149,10 @@
         function formatDisplayPitutur(text) {
             if (!text) return '';
             
-            // 1. Hapus tanda hubung (-) tanpa spasi agar kata menyambung (misal: ninggal-a -> ninggala)
             let cleaned = text.replace(/-/g, '').trim(); 
-            
-            // 2. Format Kapital awal kalimat
             let formatted = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
-            
-            // 3. Format khusus kata 'Gusti'
             formatted = formatted.replace(/\bgusti\b/gi, 'Gusti');
             
-            // 4. Akhiri dengan tanda titik jika belum ada tanda baca akhir
             if (!formatted.endsWith('.') && !formatted.endsWith('?')) {
                 formatted += '.';
             }
@@ -170,10 +164,8 @@
             const container = document.getElementById('pituturListContainer');
             container.innerHTML = ''; 
 
-            // Urutkan data berdasarkan abjad tanpa mengubah array asli
             let sortedData = [...pituturData].sort((a, b) => a.localeCompare(b, 'id'));
 
-            // Kelompokkan data berdasarkan huruf pertama
             let groupedData = {};
             sortedData.forEach(originalText => {
                 let firstLetter = originalText.trim().charAt(0).toUpperCase();
@@ -183,21 +175,17 @@
                 groupedData[firstLetter].push(originalText);
             });
 
-            let globalCounter = 1; // Penomoran urut pitutur
+            let globalCounter = 1;
 
-            // Render per grup abjad
             Object.keys(groupedData).sort().forEach(letter => {
-                // Pembungkus Seksi Abjad
                 let section = document.createElement('div');
                 section.className = 'flex flex-col';
 
-                // Header Abjad Tunggal
                 let letterHeader = document.createElement('div');
                 letterHeader.className = 'text-2xl font-bold text-amber-800 bg-amber-100/70 px-4 py-2 rounded-md mb-2 border-l-4 border-amber-700 shadow-sm';
                 letterHeader.textContent = letter;
                 section.appendChild(letterHeader);
 
-                // Kontainer List 1 Kolom
                 let ul = document.createElement('ul');
                 ul.className = 'flex flex-col rounded-lg overflow-hidden border border-amber-100 shadow-sm';
 
@@ -205,19 +193,16 @@
                     let displayText = formatDisplayPitutur(originalText);
                     let li = document.createElement('li');
                     
-                    // Latar belakang selang-seling (Zebra striping disesuaikan dengan tema UI amber)
                     let bgClass = (index % 2 === 0) ? 'bg-[#fdfbf7]' : 'bg-[#f7f2e7]';
                     
                     li.className = `${bgClass} cursor-pointer hover:bg-amber-200/60 p-3 transition border-b border-amber-100/60 last:border-0 flex items-start gap-3 text-[0.95rem] leading-relaxed text-gray-800`;
                     
-                    // Nomor urut & Teks Kalimat
                     li.innerHTML = `
                         <span class="font-bold text-amber-900 min-w-[2.2rem] text-right select-none">${globalCounter}.</span>
                         <span class="flex-grow">${displayText}</span>
                     `;
                     
                     li.onclick = () => {
-                        // Tetap memproses data asli (huruf kecil & tanda hubung)
                         searchInput.value = originalText;
                         toggleClearBtn();
                         processTransliteration(originalText);
@@ -370,7 +355,7 @@
             return text;
         }
 
-        // Helper pengecekan urutan kata secara persis berurutan (Sub-sequence Matching)
+        // Helper untuk mencocokkan urutan kata secara presisi
         function checkSequenceMatch(userWords, targetWords) {
             if (userWords.length > targetWords.length) return false;
 
@@ -397,19 +382,23 @@
             return false;
         }
 
-        // Memastikan seluruh kata yang diketik user mematuhi URUTAN kata dalam minimal satu kalimat pitutur
+        // Memastikan kata-kata yang diketik/dipilih mematuhi URUTAN kata di pitutur.json
         function isValidPituturInput(rawText) {
             if (!rawText || !rawText.trim()) return false;
             
-            let userWords = rawText.trim().toLowerCase().split(/\s+/);
+            // Bersihkan tanda baca dari input user sebelum di-split
+            let rawWords = rawText.trim().toLowerCase().split(/\s+/);
+            let userWords = rawWords.map(w => w.replace(/[^a-z0-9-]/g, '')).filter(Boolean);
+            let userWordsNoHyphen = rawWords.map(w => w.replace(/[^a-z0-9]/g, '')).filter(Boolean);
+
             if (userWords.length === 0) return false;
 
             return pituturData.some(sentence => {
-                let lowerP = sentence.toLowerCase().replace(/[.,?]/g, '');
-                let wordsClean = lowerP.replace(/-/g, '').split(/\s+/);
-                let wordsOrig = lowerP.split(/\s+/);
+                let targetWords = sentence.toLowerCase().split(/\s+/).map(w => w.replace(/[^a-z0-9-]/g, '')).filter(Boolean);
+                let targetWordsNoHyphen = sentence.toLowerCase().split(/\s+/).map(w => w.replace(/[^a-z0-9]/g, '')).filter(Boolean);
 
-                return checkSequenceMatch(userWords, wordsClean) || checkSequenceMatch(userWords, wordsOrig);
+                return checkSequenceMatch(userWords, targetWords) || 
+                       checkSequenceMatch(userWordsNoHyphen, targetWordsNoHyphen);
             });
         }
 
