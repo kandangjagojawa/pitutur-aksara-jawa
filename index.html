@@ -141,6 +141,7 @@
     <!-- Script Logika -->
     <script>
         let pituturData = [];
+        let validPituturWords = [];
         let winKbj, winSriwedari, winKawi;
         let pendingRequests = {};
         let reqId = 0;
@@ -233,11 +234,26 @@
             });
         }
 
-        // Memuat database pitutur
+        // Memuat database pitutur & mengumpulkan perbendaharaan kata unik
         fetch('pitutur.json')
             .then(res => res.json())
             .then(data => {
                 pituturData = data;
+
+                let wordSet = new Set();
+                pituturData.forEach(p => {
+                    let lowerP = p.toLowerCase();
+                    let cleanedP = lowerP.replace(/-/g, '');
+                    
+                    lowerP.split(/[\s,.-]+/).forEach(w => { if (w) wordSet.add(w); });
+                    cleanedP.split(/[\s,.-]+/).forEach(w => { if (w) wordSet.add(w); });
+                    lowerP.split(/\s+/).forEach(w => { 
+                        let cleanW = w.replace(/[.,?]/g, '');
+                        if (cleanW) wordSet.add(cleanW); 
+                    });
+                });
+                validPituturWords = Array.from(wordSet);
+
                 renderPituturList();
             })
             .catch(err => console.error("Gagal memuat pitutur.json", err));
@@ -370,23 +386,19 @@
             return text;
         }
 
-        // Fungsi mengecek apakah kata/input user ada di dalam database pitutur.json
+        // Memastikan SETIAP kata yang diketik user adalah kata valid/prefix kata di database pitutur
         function isValidPituturInput(rawText) {
             if (!rawText || !rawText.trim()) return false;
-            let val = rawText.trim().toLowerCase();
+            let inputWords = rawText.trim().toLowerCase().split(/\s+/);
             
-            return pituturData.some(pitutur => {
-                let lowerP = pitutur.toLowerCase();
-                if (lowerP === val || lowerP.startsWith(val)) return true;
-                
-                let cleanedP = lowerP.replace(/-/g, '');
-                let words = lowerP.split(/[\s,.-]+/).concat(cleanedP.split(/[\s,.-]+/));
-                return words.some(w => w.startsWith(val) || val.startsWith(w));
+            return inputWords.every(userWord => {
+                if (!userWord) return true;
+                return validPituturWords.some(pw => pw.startsWith(userWord));
             });
         }
 
         async function processTransliteration(text) {
-            // Jika input tidak valid (tidak ada di database pitutur.json), kosongkan kotak hasil transliterasi
+            // Jika ada kata yang tidak dikenal di dalam input user, langsung kosongkan semua kotak transliterasi
             if (!text || !text.trim() || !isValidPituturInput(text)) {
                 document.getElementById('outKbj').innerText = '';
                 document.getElementById('outSriwedari').innerText = '';
@@ -410,9 +422,6 @@
                 resSriwedari = resSriwedari.replace(/ꦤꦼꦒꦫꦶ/g, 'ꦤꦒꦫꦶ');
                 resSriwedari = resSriwedari.replace(/ꦱꦼꦒꦫ/g, 'ꦱꦒꦫ');
                 resSriwedari = resSriwedari.replace(/ꦊꦭꦧꦸꦃꦲꦤ꧀/g, 'ꦭꦭꦧꦸꦃꦲꦤ꧀');
-                resSriwedari = resSriwedari.replace(/ꦱꦼꦥꦶꦫ/g, 'ꦱꦥꦶꦫ');
-                resSriwedari = resSriwedari.replace(/ꦱꦼꦢꦸꦭꦸꦂ/g, 'ꦱꦢꦸꦭꦸꦂ');
-                resSriwedari = resSriwedari.replace(/ꦉꦏꦱ/g, 'ꦉꦏꦱ');
             }
 
             document.getElementById('outKbj').innerText = resKbj || '';
