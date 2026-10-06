@@ -141,7 +141,6 @@
     <!-- Script Logika -->
     <script>
         let pituturData = [];
-        let validPituturWords = [];
         let winKbj, winSriwedari, winKawi;
         let pendingRequests = {};
         let reqId = 0;
@@ -234,26 +233,11 @@
             });
         }
 
-        // Memuat database pitutur & mengumpulkan perbendaharaan kata unik
+        // Memuat database pitutur
         fetch('pitutur.json')
             .then(res => res.json())
             .then(data => {
                 pituturData = data;
-
-                let wordSet = new Set();
-                pituturData.forEach(p => {
-                    let lowerP = p.toLowerCase();
-                    let cleanedP = lowerP.replace(/-/g, '');
-                    
-                    lowerP.split(/[\s,.-]+/).forEach(w => { if (w) wordSet.add(w); });
-                    cleanedP.split(/[\s,.-]+/).forEach(w => { if (w) wordSet.add(w); });
-                    lowerP.split(/\s+/).forEach(w => { 
-                        let cleanW = w.replace(/[.,?]/g, '');
-                        if (cleanW) wordSet.add(cleanW); 
-                    });
-                });
-                validPituturWords = Array.from(wordSet);
-
                 renderPituturList();
             })
             .catch(err => console.error("Gagal memuat pitutur.json", err));
@@ -386,19 +370,51 @@
             return text;
         }
 
-        // Memastikan SETIAP kata yang diketik user adalah kata valid/prefix kata di database pitutur
+        // Helper pengecekan urutan kata secara persis berurutan (Sub-sequence Matching)
+        function checkSequenceMatch(userWords, targetWords) {
+            if (userWords.length > targetWords.length) return false;
+
+            for (let startIdx = 0; startIdx <= targetWords.length - userWords.length; startIdx++) {
+                let match = true;
+                for (let i = 0; i < userWords.length; i++) {
+                    let uWord = userWords[i];
+                    let tWord = targetWords[startIdx + i];
+
+                    if (i < userWords.length - 1) {
+                        if (uWord !== tWord) {
+                            match = false;
+                            break;
+                        }
+                    } else {
+                        if (!tWord.startsWith(uWord)) {
+                            match = false;
+                            break;
+                        }
+                    }
+                }
+                if (match) return true;
+            }
+            return false;
+        }
+
+        // Memastikan seluruh kata yang diketik user mematuhi URUTAN kata dalam minimal satu kalimat pitutur
         function isValidPituturInput(rawText) {
             if (!rawText || !rawText.trim()) return false;
-            let inputWords = rawText.trim().toLowerCase().split(/\s+/);
             
-            return inputWords.every(userWord => {
-                if (!userWord) return true;
-                return validPituturWords.some(pw => pw.startsWith(userWord));
+            let userWords = rawText.trim().toLowerCase().split(/\s+/);
+            if (userWords.length === 0) return false;
+
+            return pituturData.some(sentence => {
+                let lowerP = sentence.toLowerCase().replace(/[.,?]/g, '');
+                let wordsClean = lowerP.replace(/-/g, '').split(/\s+/);
+                let wordsOrig = lowerP.split(/\s+/);
+
+                return checkSequenceMatch(userWords, wordsClean) || checkSequenceMatch(userWords, wordsOrig);
             });
         }
 
         async function processTransliteration(text) {
-            // Jika ada kata yang tidak dikenal di dalam input user, langsung kosongkan semua kotak transliterasi
+            // Jika urutan kata tidak cocok dengan kalimat manapun di pitutur.json, kosongkan semua hasil transliterasi
             if (!text || !text.trim() || !isValidPituturInput(text)) {
                 document.getElementById('outKbj').innerText = '';
                 document.getElementById('outSriwedari').innerText = '';
